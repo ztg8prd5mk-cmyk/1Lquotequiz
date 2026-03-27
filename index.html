@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ 名句拼拼樂：夢幻挑戰 ✨</title>
+    <style>
+        :root {
+            --pastel-purple: #E0C3FC;
+            --pastel-blue: #B9FBC0;
+            --pastel-pink: #FFCFD2;
+            --fancy-gradient: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+            --main-gradient: linear-gradient(to right, #dec2ff, #91eaff);
+            --text-color: #5d5d5d;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 4px solid white;
+            text-align: center;
+        }
+
+        h1 {
+            background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+        }
+
+        /* 遊戲按鈕 */
+        button {
+            background: var(--main-gradient);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            filter: brightness(1.05);
+        }
+
+        /* 字塊樣式 */
+        .char-block {
+            display: inline-block;
+            background: white;
+            border: 2px solid #dec2ff;
+            color: #7b68ee;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 12px;
+            font-size: 1.3em;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .char-block:hover {
+            background: #f8f0ff;
+            border-color: #8ec5fc;
+        }
+
+        /* 區域樣式 */
+        .pool-area, .answer-area {
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px dashed #b9d7ea;
+            padding: 20px;
+            border-radius: 20px;
+            margin: 20px 0;
+            min-height: 60px;
+        }
+
+        .answer-area {
+            border: 2px solid #ffcfd2;
+            background: #fffafa;
+        }
+
+        input {
+            padding: 12px;
+            border-radius: 15px;
+            border: 2px solid #dec2ff;
+            width: 70%;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        /* 排行榜表格 */
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th { background: #dec2ff; color: white; padding: 10px; border-radius: 10px 10px 0 0; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+
+        .hidden { display: none; }
+        .status { font-weight: bold; color: #8ec5fc; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="login-screen">
+    <h1>🌸 名句拼拼樂 🌸</h1>
+    <p>請輸入你的班別及姓名開始挑戰</p>
+    <input type="text" id="username" placeholder="如：1L 陳一心">
+    <br>
+    <button onclick="startGame()">開始遊戲 ✨</button>
+</div>
+
+<div class="container hidden" id="game-screen">
+    <div class="status">
+        👤 <span id="display-name"></span> | ⏱️ <span id="timer">0</span>s | 📝 題次: <span id="q-num">1</span>/10
+    </div>
+    <div class="answer-area" id="answer-area"></div>
+    <div class="pool-area" id="pool-area"></div>
+    <button onclick="checkAnswer()">提交答案</button>
+    <button onclick="resetCurrentQ()" style="background: #ffcfd2;">重填</button>
+</div>
+
+<div class="container hidden" id="result-screen">
+    <h1>🍭 挑戰達成！</h1>
+    <p id="final-stat"></p>
+    <button onclick="uploadAndShowLeaderboard()">🏆 查看全班排行榜</button>
+    <button onclick="location.reload()" style="background: #b9fbc0;">再玩一次</button>
+</div>
+
+<div class="container hidden" id="leaderboard-screen">
+    <h1>🏆 全班前十名 🏆</h1>
+    <table id="lb-table">
+        <thead>
+            <tr><th>名次</th><th>姓名</th><th>最高分</th><th>最快(秒)</th></tr>
+        </thead>
+        <tbody id="lb-body"></tbody>
+    </table>
+    <button onclick="location.reload()">返回首頁</button>
+</div>
+
+<script>
+    // 🔗 請在這裡貼上你 Google Apps Script 部署後的 Web App URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbxZ1Q4uaboxYOU0TLCweQBHK3u6Zg40QbaPgNlrIaPfijfAxkGSEmiwVkcFu10qKs2X-A/exec";
+
+    const allQuotes = [
+        "良藥苦口利於病，忠言逆耳利於行。",
+        "君子當功受賞。",
+        "君子慎其所從。以長者之慮，則由全身之階；隨小者之戇，而有危亡之敗也。",
+        "與善人居，如入芝蘭之室，久而不聞其香，即與之化矣；與不善人居，如入鮑魚之肆，久而不聞其臭，亦與之化矣。",
+        "君子居必擇處，遊必擇方，仕必擇君。",
+        "中人之情也，有餘則侈，不足則儉，無禁則淫，無度則逸，從慾則敗，是故鞭撲之子不從父之教，行戮之民不從君之令。",
+        "巧而好度必攻，勇而好問必勝，智而好謀必成。",
+        "凡事預則立，不預則廢。",
+        "鳥窮則啄，獸窮則攫，人窮則詐，馬窮則佚。自古及今，未有窮其下而能無危者也。",
+        "愛近仁，度近智，為己不重，為人不輕，君子也夫。"
+    ];
+
+    let currentQuotes = [];
+    let currentQIndex = 0;
+    let score = 100;
+    let timeElapsed = 0;
+    let timerInterval;
+    let userName = "";
+
+    function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
+
+    function startGame() {
+        userName = document.getElementById("username").value.trim();
+        if (!userName) return alert("請輸入班別及姓名！");
+        
+        currentQuotes = shuffle([...allQuotes]);
+        document.getElementById("display-name").innerText = userName;
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("game-screen").classList.remove("hidden");
+
+        timerInterval = setInterval(() => {
+            timeElapsed++;
+            document.getElementById("timer").innerText = timeElapsed;
+        }, 1000);
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        document.getElementById("q-num").innerText = currentQIndex + 1;
+        const pool = document.getElementById("pool-area");
+        const answer = document.getElementById("answer-area");
+        pool.innerHTML = ""; answer.innerHTML = "";
+
+        let chars = shuffle(currentQuotes[currentQIndex].split(''));
+        chars.forEach(c => {
+            let div = document.createElement("div");
+            div.className = "char-block";
+            div.innerText = c;
+            div.onclick = function() { 
+                if (this.parentElement.id === "pool-area") answer.appendChild(this);
+                else pool.appendChild(this);
+            };
+            pool.appendChild(div);
+        });
+    }
+
+    function resetCurrentQ() {
+        const pool = document.getElementById("pool-area");
+        const answer = document.getElementById("answer-area");
+        while(answer.firstChild) pool.appendChild(answer.firstChild);
+    }
+
+    function checkAnswer() {
+        let userAns = Array.from(document.getElementById("answer-area").children).map(c => c.innerText).join('');
+        if (userAns === currentQuotes[currentQIndex]) {
+            currentQIndex++;
+            if (currentQIndex < 10) loadQuestion();
+            else finishGame();
+        } else {
+            score = Math.max(0, score - 5);
+            alert("順序不對哦，請再試試！");
+            resetCurrentQ();
+        }
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval);
+        document.getElementById("game-screen").classList.add("hidden");
+        document.getElementById("result-screen").classList.remove("hidden");
+        document.getElementById("final-stat").innerText = `得分：${score} | 用時：${timeElapsed}秒`;
+    }
+
+    async function uploadAndShowLeaderboard() {
+        document.getElementById("result-screen").classList.add("hidden");
+        document.getElementById("leaderboard-screen").classList.remove("hidden");
+        document.getElementById("lb-body").innerHTML = "載入班級數據中...";
+
+        // 1. 發送成績
+        const payload = { name: userName, score: score, time: timeElapsed };
+        
+        try {
+            await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+            // 2. 獲取排行
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            
+            let html = "";
+            data.forEach((row, i) => {
+                html += `<tr><td>${i+1}</td><td>${row.name}</td><td>${row.score}</td><td>${row.time}s</td></tr>`;
+            });
+            document.getElementById("lb-body").innerHTML = html;
+        } catch (e) {
+            document.getElementById("lb-body").innerHTML = "連線失敗，請檢查 API URL。";
+        }
+    }
+</script>
+
+</body>
+</html>
